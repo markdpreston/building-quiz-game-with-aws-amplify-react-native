@@ -40,116 +40,90 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ username }) => {
   const [gameState, setGameState] = useState<GameState>("idle");
   const [currentQuestion, setCurrentQuestion] = useState<number>(-1);
   const [game, setGame] = useState<Schema["Game"]["type"]>();
+
   const handleSearchGame = async (): Promise<void> => {
-    const currentGames = await client.models.Game.list({
-      filter: {
-        playerTwoId: {
-          eq: "notAssigned",
-        },
-      },
-    });
-
-    if (currentGames.data.length > 0) {
-      await client.models.Game.update({
-        id: currentGames.data[0].id,
-        playerTwoId: username,
-      });
-      setGameState("found");
-
-      client.models.Game.observeQuery({
+    try {
+      const currentGames = await client.models.Game.list({
         filter: {
-          id: {
-            eq: currentGames.data[0].id,
+          playerTwoId: {
+            eq: "notAssigned",
           },
         },
-      }).subscribe(async (game) => {
-        if (game.items[0].questions.length > 0) {
-          setGameState("quiz");
-          setGame(game.items[0]);
-        }
-        if (game.items[0].currentQuestion !== currentQuestion) {
-          setCurrentQuestion((game.items[0].currentQuestion ?? 0) + 1);
-        }
-      });
-      const result = await client.generations.generateQuestions({
-        description: "",
       });
 
-      if (result.errors) {
-        setGameState("error");
-        return;
-      }
+      if (currentGames.data.length > 0) {
+        await client.models.Game.update({
+          id: currentGames.data[0].id,
+          playerTwoId: username,
+        });
+        setGameState("found");
 
-      const updatedGame = await client.models.Game.update({
-        id: currentGames.data[0].id,
-        questions: result.data as Schema["Question"]["type"][],
-      });
-
-      if (updatedGame.data) {
-        setGame(updatedGame.data);
-      }
-      // await client.models.Game.update({
-      //   id: currentGames.data[0].id,
-      //   questions: [
-      //     {
-      //       question: "Which country won the FIFA World Cup in 2022?",
-      //       options: ["Brazil", "France", "Argentina", "Germany"],
-      //       correctAnswer: "Argentina",
-      //       category: "Soccer",
-      //     },
-      //     {
-      //       question: "In which sport would you perform a 'slam dunk'?",
-      //       options: ["Volleyball", "Tennis", "Basketball", "Cricket"],
-      //       correctAnswer: "Basketball",
-      //       category: "Basketball",
-      //     },
-      //     {
-      //       question:
-      //         "How many players are there on a standard ice hockey team?",
-      //       options: ["5", "6", "7", "8"],
-      //       correctAnswer: "6",
-      //       category: "Ice Hockey",
-      //     },
-      //     {
-      //       question:
-      //         "In which Olympic sport might you use the 'Fosbury Flop' technique?",
-      //       options: ["Swimming", "Diving", "High Jump", "Gymnastics"],
-      //       correctAnswer: "High Jump",
-      //       category: "Athletics",
-      //     },
-      //     {
-      //       question:
-      //         "Which Grand Slam tennis tournament is played on clay courts?",
-      //       options: ["Wimbledon", "US Open", "Australian Open", "French Open"],
-      //       correctAnswer: "French Open",
-      //       category: "Tennis",
-      //     },
-      //   ],
-      // });
-    } else {
-      setGameState("searching");
-      const newGame = await client.models.Game.create({
-        playerOneId: username,
-        playerTwoId: "notAssigned",
-        questions: [],
-      });
-      client.models.Game.observeQuery({
-        filter: {
-          id: {
-            eq: newGame.data?.id,
+        client.models.Game.observeQuery({
+          filter: {
+            id: {
+              eq: currentGames.data[0].id,
+            },
           },
-        },
-      }).subscribe((game) => {
-        if (game.items[0].questions.length > 0) {
-          setGameState("quiz");
-          setGame(game.items[0]);
-        } else if (game.items[0].playerTwoId !== "notAssigned") {
-          setGameState("found");
+        }).subscribe(async (observedGame) => {
+          if (observedGame.items[0].questions.length > 0) {
+            setGameState("quiz");
+            setGame(observedGame.items[0]);
+          }
+          if (observedGame.items[0].currentQuestion !== currentQuestion) {
+            setCurrentQuestion(
+              (observedGame.items[0].currentQuestion ?? 0) + 1
+            );
+          }
+        });
+
+        const result = await client.generations.generateQuestions({
+          description: "",
+        });
+
+        if (result.errors) {
+          console.log(result.errors);
+          setGameState("error");
+          return;
         }
-        if (game.items[0].currentQuestion !== currentQuestion) {
-          setCurrentQuestion((game.items[0].currentQuestion ?? 0) + 1);
+
+        const updatedGame = await client.models.Game.update({
+          id: currentGames.data[0].id,
+          questions: result.data as Schema["Question"]["type"][],
+        });
+
+        if (updatedGame.data) {
+          setGame(updatedGame.data);
         }
-      });
+      } else {
+        setGameState("searching");
+        const newGame = await client.models.Game.create({
+          playerOneId: username,
+          playerTwoId: "notAssigned",
+          questions: [],
+        });
+        client.models.Game.observeQuery({
+          filter: {
+            id: {
+              eq: newGame.data?.id,
+            },
+          },
+        }).subscribe((observedGame) => {
+          if (observedGame.items[0].questions.length > 0) {
+            setGameState("quiz");
+            setGame(observedGame.items[0]);
+          } else if (observedGame.items[0].playerTwoId !== "notAssigned") {
+            setGameState("found");
+          }
+          if (observedGame.items[0].currentQuestion !== currentQuestion) {
+            setCurrentQuestion(
+              (observedGame.items[0].currentQuestion ?? 0) + 1
+            );
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error searching for game:", error);
+      setGameState("error");
     }
   };
 
@@ -179,21 +153,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ username }) => {
           </>
         );
       case "quiz":
-        const question = game?.questions[currentQuestion];
-        if (currentQuestion === game?.questions.length) {
+        if (!game) return <Text>Loading game...</Text>;
+
+        const question = game.questions[currentQuestion];
+        if (currentQuestion === game.questions.length) {
           return (
             <>
               <Text style={styles.quizText}>Quiz is over!</Text>
               <Text style={styles.quizText}>
-                {game?.playerOneScore === game?.playerTwoScore
-                  ? "It's a tie!"
-                  : (game?.playerOneScore ?? 0) > (game?.playerTwoScore ?? 0)
+                {game.playerOneScore === game.playerTwoScore
+                  ? `It's a tie with ${game.playerOneScore}!`
+                  : (game.playerOneScore ?? 0) > (game.playerTwoScore ?? 0)
                   ? `${
-                      game?.playerOneId === username ? "You" : game?.playerOneId
-                    } won with ${game?.playerOneScore} points!`
+                      game.playerOneId === username ? "You" : game.playerOneId
+                    } won with ${game.playerOneScore} points!`
                   : `${
-                      game?.playerTwoId === username ? "You" : game?.playerTwoId
-                    } won with ${game?.playerTwoScore} points!`}
+                      game.playerTwoId === username ? "You" : game.playerTwoId
+                    } won with ${game.playerTwoScore} points!`}
               </Text>
             </>
           );
@@ -204,26 +180,26 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ username }) => {
             {question?.options.map((option) => (
               <Button
                 key={option}
-                title={option!}
+                title={option}
                 onPress={() => {
                   if (option === question.correctAnswer) {
-                    if (game?.playerOneId === username) {
+                    if (game.playerOneId === username) {
                       client.models.Game.update({
-                        id: game!.id,
-                        playerOneScore: (game?.playerOneScore ?? 0) + 10,
-                        currentQuestion: currentQuestion,
+                        id: game.id,
+                        playerOneScore: (game.playerOneScore ?? 0) + 10,
+                        currentQuestion,
                       });
                     } else {
                       client.models.Game.update({
-                        id: game!.id,
-                        playerTwoScore: (game?.playerTwoScore ?? 0) + 10,
-                        currentQuestion: currentQuestion,
+                        id: game.id,
+                        playerTwoScore: (game.playerTwoScore ?? 0) + 10,
+                        currentQuestion,
                       });
                     }
                   } else {
                     client.models.Game.update({
-                      id: game!.id,
-                      currentQuestion: currentQuestion,
+                      id: game.id,
+                      currentQuestion,
                     });
                   }
                 }}
@@ -232,11 +208,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ username }) => {
           </>
         );
       case "error":
-        return (
-          <>
-            <Text style={styles.welcomeText}>There is an error.</Text>
-          </>
-        );
+        return <Text style={styles.welcomeText}>There is an error.</Text>;
       default:
         return <Text>Unknown state</Text>;
     }

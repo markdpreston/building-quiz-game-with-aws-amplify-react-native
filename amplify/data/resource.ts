@@ -3,7 +3,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 const schema = a.schema({
   generateQuestions: a
     .generation({
-      aiModel: a.ai.model("Claude 3 Sonnet"),
+      aiModel: a.ai.model("Claude 3.5 Sonnet"),
       systemPrompt: `
 You are a quiz question generator.
 
@@ -16,6 +16,7 @@ Requirements for each question:
 - Include 4 different answer options, with the JSON key 'options', each a string.
 - Specify 1 correct answer, with the JSON key 'correctAnswer', in string format.
 - Return the category with the JSON key 'category'.
+- The returned JSON will only have keys and values from the information from the mentioned before. Do not add any explanatory messages or statements such as 'Here is a JSON containing your trip', so user can take the JSON string and play around with it.
 - Questions should not be repeated.
     `,
     })
