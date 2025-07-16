@@ -9,10 +9,12 @@ frontend:
   phases:
     preBuild:
       commands:
+        - nvm install node
         - npm install -g npm@latest  
+        - node --version
+        - npm --version
+        - nvm --version
         - npm -g -i expo-cli
-        - nvm install --lts
-        - nvm use 10
         - npm ci --cache .npm --prefer-offline
     build:
       commands:
