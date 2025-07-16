@@ -9,9 +9,8 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci node
-        - npm ci expo-cli
-        - npm install -g npm@latest  
+        - npm install node
+        - npm install expo-cli
         - npm ci --cache .npm --prefer-offline
     build:
       commands:
