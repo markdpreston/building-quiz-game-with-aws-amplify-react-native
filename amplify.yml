@@ -9,8 +9,8 @@ frontend:
   phases:
     preBuild:
       commands:
-        - nvm ci node
-        - nvm ci expo-cli
+        - npm ci node
+        - npm ci expo-cli
         - npm install -g npm@latest  
         - npm ci --cache .npm --prefer-offline
     build:
