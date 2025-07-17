@@ -17,7 +17,7 @@ frontend:
         - mkdir ./dist && touch ./dist/index.html
         - npx expo export
   artifacts:
-    baseDirectory: web-build
+    baseDirectory: dist
     files:
       - '**/*'
   cache:
