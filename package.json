@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aws-amplify/react-native": "^1.0.5",
+    "@aws-amplify/ui-react-native": "^2.5.3",
     "@gorhom/bottom-sheet": "^4.6.3",
     "@onfido/react-native-sdk": "^11.1.0",
     "@react-native-async-storage/async-storage": "^1.23.1",
@@ -69,6 +70,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@aws-amplify/backend": "^1.16.1",
+    "@aws-amplify/backend-cli": "^1.8.0",
     "@babel/core": "^7.24.7",
     "@babel/preset-env": "^7.24.7",
     "@babel/runtime": "^7.24.7",
@@ -81,6 +84,7 @@
     "@types/react": "^18.2.6",
     "@types/react-test-renderer": "^18.0.0",
     "@types/styled-components": "^5.1.34",
+    "aws-cdk-lib": "^2.189.1",
     "babel-jest": "^29.6.3",
     "babel-plugin-module-resolver": "^5.0.2",
     "eslint": "^8.57.0",
