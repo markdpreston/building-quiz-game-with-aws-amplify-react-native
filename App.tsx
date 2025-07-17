@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 
-import { Amplify } from "aws-amplify";
+import { Amplify, Auth } from "aws-amplify";
 import { Authenticator, useAuthenticator } from "@aws-amplify/ui-react-native";
 
 import outputs from "./amplify_outputs.json";
@@ -19,6 +19,7 @@ import { generateClient } from "aws-amplify/data";
 const client = generateClient<Schema>();
 
 Amplify.configure(outputs);
+Auth.configure(outputs);
 
 const SignOutButton: React.FC = () => {
   const { signOut } = useAuthenticator();
